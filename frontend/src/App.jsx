@@ -329,7 +329,7 @@ function App() {
   const [results, setResults] = useState(null);
 
   useEffect(() => {
-    fetch('http://localhost:8000/api/filter-options')
+    fetch('/api/filter-options')
       .then(res => res.json())
       .then(data => setFilterOptions(data));
   }, []);
@@ -380,7 +380,7 @@ function App() {
     };
 
     try {
-      const response = await fetch('http://localhost:8000/api/run-experiments', {
+      const response = await fetch('/api/run-experiments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -405,8 +405,8 @@ function App() {
       <div className="description-section">
         <p className="main-description">
           Ever wondered how your "number" stacks up? We've got the juicy details straight from 
-          the CDC's National Survey of Family Growth. Slice and dice the data to see which groups 
-          are really getting busy in the USA! 🌶️ Compare different demographics and see who's 
+          the CDC's 2022-23 National Survey of Family Growth. Slice and dice the data to see which groups 
+          are really getting busy in the US! 🌶️ Compare different demographics and see who's 
           leading the scoreboard... for science, of course! 📊
         </p>
         <p className="technical-note">

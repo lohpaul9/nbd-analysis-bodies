@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List, Dict, Any
 import json
@@ -7,17 +8,12 @@ import numpy as np
 from data_reader import *
 from models import run_experiments as run_model_experiments
 from json_tricks import dumps, loads
+import os
 
 app = FastAPI()
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Vite's default port
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Mount the static files from the frontend build
+app.mount("/assets", StaticFiles(directory="../frontend/dist/assets"), name="assets")
 
 class ExperimentConfig(BaseModel):
     name: str
@@ -56,3 +52,24 @@ async def get_filter_options():
         filters_with_options[filter] = FILTER_LOOKUP_MAP[filter][0]
     
     return filters_with_options
+
+# Serve the frontend
+@app.get("/{full_path:path}")
+async def serve_frontend(full_path: str):
+    # Serve index.html for all routes except /api
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    frontend_path = "../frontend/dist"
+    file_path = os.path.join(frontend_path, full_path)
+    
+    # If the specific file exists, serve it
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        return FileResponse(file_path)
+    
+    # Otherwise serve index.html
+    return FileResponse(os.path.join(frontend_path, "index.html"))
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=80)
