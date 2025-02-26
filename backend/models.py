@@ -57,6 +57,7 @@ def compute_model_probs(theta, alpha, r, debug=False):
     if not np.isclose(model_probs[:50].sum(), 1.0, atol=1e-2):
         # print(f"Sum of spiked model probabilities is not close to 1 before >=50: {model_probs[:50].sum()} for alpha: {alpha}, r: {r} theta: {theta}")
         if model_probs[:50].sum() > 1.0:
+            print(f"Model probabilities sum to greater than 1 before >=50: {model_probs[:50].sum()} for alpha: {alpha}, r: {r} theta: {theta}")
             raise ValueError("Model probabilities sum to greater than 1")
     
     # For x=50: bucket probability for all counts >= 50
@@ -101,17 +102,43 @@ def get_params(cleaned_data_df):
         negative_log_likelihood,
         x0=initial_params,
         args=(observed_counts,),
-        method='L-BFGS-B',
         bounds=bounds
     )
 
-    # Extract the best-fit parameters
-    theta_hat, alpha_hat, r_hat = result.x
-    # print("Optimized Parameters:")
-    # print(f"theta = {theta_hat}")
-    # print(f"alpha = {alpha_hat}")
-    # print(f"r = {r_hat}")
-    return theta_hat, alpha_hat, r_hat
+    if result.success:
+        # Extract the best-fit parameters
+        theta_hat, alpha_hat, r_hat = result.x
+        # print("Optimized Parameters:")
+        # print(f"theta = {theta_hat}")
+        # print(f"alpha = {alpha_hat}")
+        # print(f"r = {r_hat}")
+        return theta_hat, alpha_hat, r_hat
+    else:
+        print(f"Optimization failed with message: {result.message}")
+        # try again with different initial parameters
+        initial_params = [0.01, 0.1, 0.7]
+        result = minimize(
+            negative_log_likelihood,
+            x0=initial_params,
+            args=(observed_counts,),
+            bounds=bounds
+        )
+        if result.success:
+            theta_hat, alpha_hat, r_hat = result.x
+            return theta_hat, alpha_hat, r_hat
+        else:
+            initial_params = [0.5, 0.5, 0.5]
+            result = minimize(
+                negative_log_likelihood,
+                x0=initial_params,
+                args=(observed_counts,),
+                bounds=bounds
+            )
+            if not result.success:
+                print(f"Optimization failed with message: {result.message}")
+
+            theta_hat, alpha_hat, r_hat = result.x
+            return theta_hat, alpha_hat, r_hat
 
 def calculate_chi_square_test(predicted_counts, actual_counts):
     """
@@ -264,7 +291,7 @@ def graph_predictions_vs_actual_for_multiple_completed_experiments(experiments):
         experiment_name = experiment['name']
         
         # now we just plot the predictions vs the actual for everything
-        plt.plot(x_axis, data['Probs'], label=experiment_name + f" {data['Count'].sum()}")
+        plt.plot(x_axis, data['Probs'], label=experiment_name + f" {np.sum(data['Count'])}")
 
     plt.xlabel(x_axis_title)
     plt.ylabel('Counts')
@@ -296,7 +323,7 @@ def graph_lorenz_curve_for_multiple_completed_experiments(experiments):
     plt.show()
     
 
-def run_experiments(experiments):
+def run_experiments(experiments, local_graph=False):
     results = []
     for experiment_name, filters in experiments:
         data = read_data(filters)
@@ -330,121 +357,23 @@ def run_experiments(experiments):
                 'y': lorenz_points[1].tolist()
             }
         })
-
-    # graph_predictions_vs_actual_for_multiple_completed_experiments(results)
-    # graph_lorenz_curve_for_multiple_completed_experiments(results)
-    # plot_mixing_parameters_points(results)
+    if local_graph:
+        graph_predictions_vs_actual_for_multiple_completed_experiments(results)
+        graph_lorenz_curve_for_multiple_completed_experiments(results)
+        plot_mixing_parameters_points(results)
     return results
 
 if __name__ == "__main__":
-    experiments = [
-        ("Male", {
-            GENDER_LOOKUP_KEY: GENDER_OPTIONS['Male']
-        }),
-        ("Male non-religious", {
+    male_white_experiment = [
+        ("Male White", {
             GENDER_LOOKUP_KEY: GENDER_OPTIONS['Male'],
-            RELIGION_LOOKUP_KEY: RELIGION_OPTIONS['No Religion']
-        }),
-        ("Male protestant", {
-            GENDER_LOOKUP_KEY: GENDER_OPTIONS['Male'],
-            RELIGION_LOOKUP_KEY: RELIGION_OPTIONS['Protestant']
-        }),
-        ("Male catholic", {
-            GENDER_LOOKUP_KEY: GENDER_OPTIONS['Male'],
-            RELIGION_LOOKUP_KEY: RELIGION_OPTIONS['Catholic']
+            RACE_LOOKUP_KEY: RACE_OPTIONS['White']
         }),
     ]
 
-    experiments_emote_abuse = [
-        ("Female Sex Abuse", {
-            GENDER_LOOKUP_KEY: GENDER_OPTIONS['Female'],
-            SEXABUSE_HISTORY_LOOKUP_KEY: SEXABUSE_HISTORY_OPTIONS['Was ever sexually abused']
-        }),
-        ("Female No Sex Abuse", {
-            GENDER_LOOKUP_KEY: GENDER_OPTIONS['Female'],
-            SEXABUSE_HISTORY_LOOKUP_KEY: SEXABUSE_HISTORY_OPTIONS['Was never sexually abused']
-        }),
-        # ("Female Baseline", {
-        #     GENDER_LOOKUP_KEY: GENDER_OPTIONS['Female'],
-        # }),
-        # ("Female Emotional Abuse", {
-        #     GENDER_LOOKUP_KEY: GENDER_OPTIONS['Female'],
-        #     EMOTABUSE_BY_PARENTS_LOOKUP_KEY: EMOTABUSE_BY_PARENTS_OPTIONS['Was ever emotionally abused by parents']
-        # }),
-        # ("Female No Emotional Abuse", {
-        #     GENDER_LOOKUP_KEY: GENDER_OPTIONS['Female'],
-        #     EMOTABUSE_BY_PARENTS_LOOKUP_KEY: EMOTABUSE_BY_PARENTS_OPTIONS['Was never emotionally abused by parents']
-        # }),
-    ]
-
-    male_vs_female_baseline = [
-        ("Male Baseline", {
-            GENDER_LOOKUP_KEY: GENDER_OPTIONS['Male'],
-        }),
-        ("Female Baseline", {
-            GENDER_LOOKUP_KEY: GENDER_OPTIONS['Female'],
-        }),
-    ]
-
-    no_mother_figure_experiment = [
-        ("No Mother Figure Male", {
-            GENDER_LOOKUP_KEY: GENDER_OPTIONS['Male'],
-            NO_MOTHER_FIGURE_LOOKUP_KEY: NO_MOTHER_FIGURE_OPTIONS['No Mother Figure']
-        }),
-        ("No Mother Figure Female", {
-            GENDER_LOOKUP_KEY: GENDER_OPTIONS['Female'],
-            NO_MOTHER_FIGURE_LOOKUP_KEY: NO_MOTHER_FIGURE_OPTIONS['No Mother Figure']
-        }),
-        ("No mother figure overall", {
-            GENDER_LOOKUP_KEY: GENDER_OPTIONS["Both"],
-            NO_MOTHER_FIGURE_LOOKUP_KEY: NO_MOTHER_FIGURE_OPTIONS['No Mother Figure']
-        }),
-        ("All males", {
-            GENDER_LOOKUP_KEY: GENDER_OPTIONS['Male'],
-        }),
-        ("All females", {
-            GENDER_LOOKUP_KEY: GENDER_OPTIONS['Female'],
-        }),
-    ]
-
-    no_father_figure_female_experiment = [
-        ("No Father Figure Female", {
-            GENDER_LOOKUP_KEY: GENDER_OPTIONS['Female'],
-            NO_FATHER_FIGURE_LOOKUP_KEY: NO_FATHER_FIGURE_OPTIONS['No Father Figure']
-        }),
-        ("All females", {
-            GENDER_LOOKUP_KEY: GENDER_OPTIONS['Female'],
-        }),
-    ]
-
-    all_males_experiment = [    
-        ("All males", {
-            GENDER_LOOKUP_KEY: GENDER_OPTIONS['Male'],
-        }),
-    ]
-
-    divorced_before_vs_never_divorced_experiment = [
-        ("Divorced before", {
-            GENDER_LOOKUP_KEY: GENDER_OPTIONS['Both'],
-            SEPARATED_MARITAL_STATUS_LOOKUP_KEY: SEPARATED_MARITAL_STATUS_OPTIONS['Divorced']
-        }),
-        ("Currently Married", {
-            GENDER_LOOKUP_KEY: GENDER_OPTIONS['Both'],
-            MARITAL_STATUS_LOOKUP_KEY: MARITAL_STATUS_OPTIONS['Married']
-        })
-    ]
+    run_experiments(male_white_experiment, local_graph=True)
 
 
-
-    # run_experiments(experiments_emote_abuse)
-    # run_experiments(experiments)
-    # run_experiments(all_males_experiment)
-
-    # run_experiments(all_males_experiment)
-
-    # loads(dumps(run_experiments(male_vs_female_baseline)))
-
-    run_experiments(male_vs_female_baseline)
 
 
 
