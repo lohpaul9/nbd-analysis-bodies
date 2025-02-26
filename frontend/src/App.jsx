@@ -472,13 +472,19 @@ function App() {
   };
 
   const generateExperimentName = (filters) => {
+    if (filters.length === 0) {
+        return "Entire Population";
+    }
     return filters.map(filter => {
-      if (filter.key === "Age") {
-        const [min, max] = filter.value.value;
-        return `${filter.key}: ${min}-${max}`;
-      }
-      return `${filter.key}: ${filter.value.name}`;
-    }).join(", ");
+        if (filter.key && filter.value) { // Check if key and value are defined
+            if (filter.key === "Age") {
+                const [min, max] = filter.value.value;
+                return `${filter.key}: ${min}-${max}`;
+            }
+            return `${filter.key}: ${filter.value.name}`;
+        }
+        return ""; // Return an empty string for undefined filters
+    }).filter(name => name).join(", "); // Filter out empty names
   };
 
   const runExperiments = async () => {
