@@ -75,7 +75,7 @@ EDUCATION_OPTIONS = {
     "No High School Diploma": 2,
     "High School Graduation At Least": 3,
     "College Degree At Least": 6,
-    "Master's Degree at Least": 8
+    "Masters Degree at Least": 8
 }
 
 def EDUCATION_FILTER(df: pd.DataFrame, education: int) -> pd.DataFrame:
@@ -260,6 +260,8 @@ FILTER_LOOKUP_MAP = {
     FOSTER_CARE_LOOKUP_KEY: (FOSTER_CARE_OPTIONS, FOSTER_CARE_FILTER),
 }
 
+df1 = pd.read_csv(MALE_DATA, low_memory=True)
+df2 = pd.read_csv(FEMALE_DATA, low_memory=True)
 
 def read_data(filters):
     if GENDER_LOOKUP_KEY not in filters:
@@ -267,10 +269,6 @@ def read_data(filters):
 
     gender = filters[GENDER_LOOKUP_KEY]
     filters.pop(GENDER_LOOKUP_KEY)
-    
-    # Read the CSV file into a DataFrame
-    df1 = pd.read_csv(MALE_DATA, low_memory=False)
-    df2 = pd.read_csv(FEMALE_DATA, low_memory=False)
     
     # Combine the dataframes if needed
     if gender == GENDER_OPTIONS['Both']:

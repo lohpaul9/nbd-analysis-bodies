@@ -9,6 +9,7 @@ from data_reader import *
 from models import run_experiments as run_model_experiments
 from json_tricks import dumps, loads
 import os
+import traceback
 
 app = FastAPI()
 
@@ -29,19 +30,23 @@ async def run_experiments(request: ExperimentsRequest):
         experiment_tuples = [
             (exp.name, exp.filters) for exp in request.experiments
         ]
-        print(experiment_tuples)
+        print("Received experiment tuples:")
+        print(json.dumps(experiment_tuples, indent=2))
         
         # Run the experiments
+        print("Running experiments...")
         results = run_model_experiments(experiment_tuples)
+        print("Experiments completed successfully")
         
         # Convert numpy arrays to lists for JSON serialization
         processed_results = []
         for result in results:
-            # serialized_results = loads(dumps(result))
             processed_results.append(result)
             
         return processed_results
     except Exception as e:
+        print("Error occurred:")
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/filter-options")

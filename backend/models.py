@@ -91,7 +91,7 @@ def get_params(cleaned_data_df):
     observed_counts = cleaned_data_df['Count'].values
 
     # Define initial parameter guesses
-    initial_params = [0.5, 1.0, 1.0]  # [theta, alpha, r]
+    initial_params = [0.001, 1.0, 1.0]  # [theta, alpha, r]
 
     # Set parameter bounds: theta in (0,1), alpha > 0, r > 0
     bounds = [(1e-5, 1 - 1e-5), (1e-5, None), (1e-5, None)]

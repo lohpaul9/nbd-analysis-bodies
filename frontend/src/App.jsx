@@ -253,16 +253,102 @@ function ResultsVisualization({ results }) {
         onClick: (e, legendItem, legend) => {
           const index = legendItem.datasetIndex;
           const ci = legend.chart;
-          
-          // Simply toggle the clicked dataset visibility, don't affect others
           ci.setDatasetVisibility(index, !ci.isDatasetVisible(index));
           ci.update();
+        }
+      },
+      title: {
+        display: true,
+        font: {
+          size: 16,
+          weight: 'bold'
         }
       }
     },
     scales: {
       y: {
         beginAtZero: true,
+      }
+    }
+  };
+
+  const probsChartOptions = {
+    ...chartOptions,
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: 'Probability',
+          font: {
+            size: 14,
+            weight: 'bold'
+          }
+        }
+      },
+      x: {
+        title: {
+          display: true,
+          text: 'Body Count (50 means 50 or more)',
+          font: {
+            size: 14,
+            weight: 'bold'
+          }
+        }
+      }
+    }
+  };
+
+  const lorenzChartOptions = {
+    ...chartOptions,
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: 'Cumulative % of Total Body Counts',
+          font: {
+            size: 14,
+            weight: 'bold'
+          }
+        }
+      },
+      x: {
+        title: {
+          display: true,
+          text: 'Percentile of Population',
+          font: {
+            size: 14,
+            weight: 'bold'
+          }
+        }
+      }
+    }
+  };
+
+  const mixingChartOptions = {
+    ...chartOptions,
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: 'Probability',
+          font: {
+            size: 14,
+            weight: 'bold'
+          }
+        }
+      },
+      x: {
+        title: {
+          display: true,
+          text: 'λ (Mean Body Count Parameter)',
+          font: {
+            size: 14,
+            weight: 'bold'
+          }
+        }
       }
     }
   };
@@ -306,17 +392,43 @@ function ResultsVisualization({ results }) {
       <div className="charts-container">
         <div className="chart">
           <h3>Probability Distribution</h3>
-          <Line data={probsData} options={chartOptions} />
+          <p className="chart-description">
+            See the probability distribution of body counts for your selected demographics. 
+            This shows how likely someone is to have a specific number of partners, 
+            with 50+ representing having 50 or more partners.
+          </p>
+          <p className="chart-description">
+            P.S. Click on the legend to hide/show the actual data.
+          </p>
+          <div className="chart-container">
+            <Line data={probsData} options={probsChartOptions} />
+          </div>
         </div>
         
         <div className="chart">
           <h3>Lorenz Curve</h3>
-          <Line data={lorenzData} options={chartOptions} />
+          <p className="chart-description">
+            The Lorenz curve shows the inequality in body count distributions. 
+            For example, if the curve shows (0.8, 0.2), it means the bottom 80% of people 
+            contribute only 20% of the total body count. A perfectly equal distribution 
+            would follow the diagonal line.
+          </p>
+          <div className="chart-container">
+            <Line data={lorenzData} options={lorenzChartOptions} />
+          </div>
         </div>
         
         <div className="chart">
           <h3>Mixing Distribution</h3>
-          <Line data={mixingData} options={chartOptions} />
+          <p className="chart-description">
+            This shows the underlying distribution of individual "sexual exposure parameters" (λ).
+            Each person is assumed to have their own mean body count parameter λ, drawn from 
+            this gamma distribution, which then determines their actual body count through 
+            a Poisson process.
+          </p>
+          <div className="chart-container">
+            <Line data={mixingData} options={mixingChartOptions} />
+          </div>
         </div>
       </div>
     </div>
